@@ -4,20 +4,33 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import yahooFinance from "yahoo-finance2";
 import dotenv from "dotenv";
+import bcrypt from "bcryptjs";
 
-// Load environment variables
+// ES module route imports
+import panneRoute from './config/routes/panne.route.js';
+import reparationRoute from './config/routes/reparation.route.js';
+import vehiculeRoute from './config/routes/vehicule.route.js';
+import violationRoute from './config/routes/violation.route.js';
+import permisRoute from './config/routes/permis.route.js';
+
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/etapDB";
-const admin= {email: 'yassine.karfou7@gmail.com', password: 'yassine123'};
+ const admin = {password:process.env.ADMIN_PASSWORD,email:process.env.ADMIN_EMAIL}; 
+
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
-require('./config/routes/panne.route')(app);
-require('./config/routes/reparation.route')(app);
-require('./config/routes/vehicule.route')(app);
+
+// Use route modules
+panneRoute(app);
+reparationRoute(app);
+vehiculeRoute(app);
+violationRoute(app);
+permisRoute(app);
+
 // Connect to MongoDB
 mongoose.connect(MONGODB_URI)
   .then(() => console.log("✅ Connected to MongoDB"))
@@ -58,15 +71,13 @@ let historicalData = {
 // Signup endpoint
 app.post("/signup", async (req, res) => {
   try {
-    const { name,post, email, password } = req.body;
-    
+    const { name, post, email, password } = req.body;
     if (!name || !email || !password || !post) {
       return res.status(400).json({ 
         success: false, 
         message: "Name, email, and password are required" 
       });
     }
-    
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ 
@@ -74,10 +85,9 @@ app.post("/signup", async (req, res) => {
         message: "Email already exists" 
       });
     }
-    
-    const newUser = new User({ name,post, email, password });
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new User({ name, post, email, password: hashedPassword });
     await newUser.save();
-    
     res.status(201).json({ 
       success: true, 
       message: "User created successfully wait for admin approval" 
@@ -91,16 +101,15 @@ app.post("/signup", async (req, res) => {
   }
 });
 
+// Check email endpoint
 app.post("/checkEmail", async (req, res) => {
   try {
     const { email } = req.body;
-    
     if (!email) {
       return res.status(400).json({ 
         error: "Email is required" 
       });
     }
-    
     const user = await User.findOne({ email });
     res.json({ exists: !!user });
   } catch (err) {
@@ -110,15 +119,15 @@ app.post("/checkEmail", async (req, res) => {
     });
   }
 });
+
+// Prices endpoint
 app.get("/prices", async (req, res) => {
   try {
     const results = {};
-    
     for (const [key, symbol] of Object.entries(tickers)) {
       try {
         const quote = await yahooFinance.quote(symbol);
         const price = quote.regularMarketPrice;
-        
         // Store historical data (keep last 100 entries)
         if (historicalData[key].length >= 100) {
           historicalData[key].shift();
@@ -127,7 +136,6 @@ app.get("/prices", async (req, res) => {
           price,
           timestamp: new Date()
         });
-        
         results[key] = {
           price,
           currency: quote.currency,
@@ -153,7 +161,6 @@ app.get("/prices", async (req, res) => {
         }
       }
     }
-    
     res.json(results);
   } catch (error) {
     console.error("Prices endpoint error:", error);
@@ -167,13 +174,11 @@ app.get("/prices", async (req, res) => {
 app.get("/historical/:commodity", async (req, res) => {
   try {
     const { commodity } = req.params;
-    
     if (!tickers[commodity]) {
       return res.status(404).json({ 
         error: "Commodity not found" 
       });
     }
-    
     res.json(historicalData[commodity] || []);
   } catch (error) {
     console.error("Historical data error:", error);

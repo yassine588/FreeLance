@@ -15,7 +15,7 @@ const vehiculeSchema = new mongoose.Schema({
   },
   etat: {
     type: String,
-    enum: ['DISPONIBLE', 'EN_REPARATION', 'EN_MISSION', 'EN_PANNE'],
+    enum: ['DISPONIBLE', 'EN_PANNE', 'EN_REPARATION', 'HORS_SERVICE'],
     required: true
   },
   societe: {
