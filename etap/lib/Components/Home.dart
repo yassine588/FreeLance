@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/commodity.dart';
+import 'package:etap/Components/admin.dart';
 
 class EtapPage extends StatefulWidget {
   final String apiBaseUrl = 'http://192.168.1.12:3000';
@@ -21,10 +22,9 @@ class _EtapPageState extends State<EtapPage> {
   Timer? _timer;
   bool _isLoading = true;
   String _errorMessage = '';
-  Duration _selectedPeriod = Duration(minutes: 10); // Default period for chart history
-  Duration _selectedRefresh = Duration(seconds: 30); // Default refresh interval
+  Duration _selectedPeriod = Duration(minutes: 10);
+  Duration _selectedRefresh = Duration(seconds: 30);
 
-  // Define available periods for user selection (now includes 1 second)
   final List<Duration> _availablePeriods = [
     Duration(seconds: 1),
     Duration(seconds: 40),
@@ -39,7 +39,6 @@ class _EtapPageState extends State<EtapPage> {
     Duration(days: 365),
   ];
 
-  // Define available refresh intervals for user selection (now includes 1 second)
   final List<Duration> _refreshIntervals = [
     Duration(seconds: 1),
     Duration(seconds: 10),
@@ -62,7 +61,6 @@ class _EtapPageState extends State<EtapPage> {
     super.dispose();
   }
 
-  // Whenever the refresh interval changes, cancel and restart the timer
   void _updateRefreshInterval(Duration newInterval) {
     setState(() {
       _selectedRefresh = newInterval;
@@ -129,7 +127,6 @@ class _EtapPageState extends State<EtapPage> {
     }
   }
 
-  // Extracts prices from historical data objects, expects each item to have {price:..., timestamp:...}
   List<Map<String, dynamic>> _extractHistoricalPrices(List<dynamic>? historicalData) {
     if (historicalData == null) return [];
     return historicalData.map<Map<String, dynamic>>((item) {
@@ -152,9 +149,7 @@ class _EtapPageState extends State<EtapPage> {
     }).toList();
   }
 
-  // Filters historical data to match the selected period
   List<double> _filterHistoricalForPeriod(List<Map<String, dynamic>> historicalData, DateTime now) {
-    // Only keep data points within the selected period from now
     return historicalData
         .where((item) => now.difference(item['timestamp'] as DateTime) <= _selectedPeriod)
         .map<double>((item) => item['price'] as double)
@@ -207,6 +202,22 @@ class _EtapPageState extends State<EtapPage> {
     return '${period.inDays} days';
   }
 
+  // Function to navigate to admin dashboard
+  void _navigateToAdminDashboard() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const AdminHomePage()),
+    );
+  }
+
+  // Function to logout and return to login screen
+  void _logout() {
+    // Cancel any ongoing timers
+    _timer?.cancel();
+    
+    // Navigate to login screen and remove all previous routes
+    Navigator.of(context).pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -242,6 +253,12 @@ class _EtapPageState extends State<EtapPage> {
                 onPressed: _fetchData,
                 child: const Text('Retry'),
               ),
+              SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _logout,
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Logout'),
+              ),
             ],
           ),
         ),
@@ -270,7 +287,60 @@ class _EtapPageState extends State<EtapPage> {
             icon: const Icon(Icons.refresh),
             onPressed: _fetchData,
           ),
+          // Add admin dashboard navigation button
+          IconButton(
+            icon: const Icon(Icons.admin_panel_settings),
+            onPressed: _navigateToAdminDashboard,
+            tooltip: 'Go to Admin Dashboard',
+          ),
+          // Add logout button
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _logout,
+            tooltip: 'Logout',
+          ),
         ],
+      ),
+      // Add a drawer for navigation
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            const DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.blue,
+              ),
+              child: Text(
+                'ETAP Menu',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.home),
+              title: const Text('Dashboard'),
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.admin_panel_settings),
+              title: const Text('Admin Dashboard'),
+              onTap: () {
+                Navigator.pop(context);
+                _navigateToAdminDashboard();
+              },
+            ),
+            // Add logout option to drawer
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('Logout', style: TextStyle(color: Colors.red)),
+              onTap: _logout,
+            ),
+          ],
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -476,6 +546,12 @@ class _EtapPageState extends State<EtapPage> {
             ),
           ],
         ),
+      ),
+      // Add a floating logout button for easy access
+      floatingActionButton: FloatingActionButton(
+        onPressed: _logout,
+        backgroundColor: Colors.red,
+        child: const Icon(Icons.logout, color: Colors.white),
       ),
     );
   }

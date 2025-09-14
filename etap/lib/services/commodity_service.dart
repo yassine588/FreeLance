@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 class CommodityService {
   final String baseUrl;
 
-  CommodityService({this.baseUrl = 'http://192.168.1.11:3000'});
+  CommodityService({this.baseUrl = 'http://192.168.1.12:3000'});
 
   Future<Map<String, dynamic>> fetchCommodityData(String commodityType) async {
     try {

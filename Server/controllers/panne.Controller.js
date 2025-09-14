@@ -92,6 +92,24 @@ export const deletePanne = async (req, res) => {
     }
 };
 
+export const searchPannes = async (req, res) => {
+    try {
+        const { term } = req.query;
+        const regex = new RegExp(term, 'i');
+        
+        const pannes = await Panne.find({
+            $or: [
+                { description: { $regex: regex } },
+                { type_panne: { $regex: regex } }
+            ]
+        }).populate('vehicule');
+
+        res.status(200).json(pannes);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 export const getPannesByFilter = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
@@ -125,11 +143,12 @@ export const getPannesByFilter = async (req, res) => {
         if (filter.etat) {
             reparationFilter['reparation.etat'] = filter.etat;
         }
+
         const aggregationPipeline = [
             // Populate vehicule
             {
                 $lookup: {
-                    from: 'vehicules', // MongoDB collection name (usually pluralized)
+                    from: 'vehicules',
                     localField: 'vehicule',
                     foreignField: '_id',
                     as: 'vehicule'
@@ -139,7 +158,7 @@ export const getPannesByFilter = async (req, res) => {
             
             {
                 $lookup: {
-                    from: 'reparations', // MongoDB collection name
+                    from: 'reparations',
                     localField: '_id',
                     foreignField: 'panne',
                     as: 'reparation'
@@ -149,7 +168,7 @@ export const getPannesByFilter = async (req, res) => {
 
             {
                 $lookup: {
-                    from: 'piece_detachee', // MongoDB collection name
+                    from: 'piece_detachee',
                     localField: '_id',
                     foreignField: 'panne',
                     as: 'pieceDetachees'
@@ -211,12 +230,4 @@ export const getPannesByFilter = async (req, res) => {
         console.error('Error in getPannesByFilter:', error);
         res.status(500).json({ error: error.message });
     }
-    
-}; export default {
-  getAllPannes,
-  getPanneById,
-  createPanne,
-  updatePanne,
-  deletePanne,
-  searchPannes
 };

@@ -1,6 +1,6 @@
-const Permis = require('../models/permis');
+import Permis from '../models/permis.js';
 
-exports.getAllPermis = async (req, res) => {
+export const getAllPermis = async (req, res) => {
   try {
     const permis = await Permis.find().populate('chauffeur');
     const totalRecords = await Permis.countDocuments();
@@ -10,7 +10,7 @@ exports.getAllPermis = async (req, res) => {
   }
 };
 
-exports.getPermisById = async (req, res) => {
+export const getPermisById = async (req, res) => {
   try {
     const permis = await Permis.findById(req.params.id).populate('chauffeur');
     if (permis) {
@@ -23,7 +23,7 @@ exports.getPermisById = async (req, res) => {
   }
 };
 
-exports.createPermis = async (req, res) => {
+export const createPermis = async (req, res) => {
   try {
     const permis = new Permis(req.body);
     await permis.save();
@@ -34,7 +34,7 @@ exports.createPermis = async (req, res) => {
   }
 };
 
-exports.updatePermis = async (req, res) => {
+export const updatePermis = async (req, res) => {
   try {
     const permis = await Permis.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate('chauffeur');
     if (permis) {
@@ -47,7 +47,7 @@ exports.updatePermis = async (req, res) => {
   }
 };
 
-exports.deletePermis = async (req, res) => {
+export const deletePermis = async (req, res) => {
   try {
     const permis = await Permis.findByIdAndDelete(req.params.id);
     if (permis) {
@@ -60,7 +60,7 @@ exports.deletePermis = async (req, res) => {
   }
 };
 
-exports.searchPermis = async (req, res) => {
+export const searchPermis = async (req, res) => {
   try {
     const { term } = req.query;
     const regex = new RegExp(term, 'i');

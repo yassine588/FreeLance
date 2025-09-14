@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';  
 
 const vehiculeSchema = new mongoose.Schema({
   marque: {
@@ -9,17 +9,13 @@ const vehiculeSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  photo: {
-    type: String,
-    default: null
-  },
   etat: {
     type: String,
     enum: ['DISPONIBLE', 'EN_PANNE', 'EN_REPARATION', 'HORS_SERVICE'],
     required: true
   },
   societe: {
-    type: mongoose.Schema.Types.ObjectId,  // reference to another model
+    type: mongoose.Schema.Types.ObjectId,
     ref: 'Societe',
     default: null
   },
@@ -33,4 +29,4 @@ const vehiculeSchema = new mongoose.Schema({
   timestamps: false
 });
 
-module.exports = mongoose.model('Vehicule', vehiculeSchema);
+export default mongoose.model('Vehicule', vehiculeSchema);

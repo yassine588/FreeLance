@@ -1,6 +1,6 @@
-const Vehicule = require('../models/vehicule');
+import Vehicule from '../models/vehicule.js';
 
-exports.getAllVehicules = async (req, res) => {
+export const getAllVehicules = async (req, res) => {
     try {
         const vehicules = await Vehicule.find();
         const totalRecords = await Vehicule.countDocuments();
@@ -9,7 +9,8 @@ exports.getAllVehicules = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
-exports.getVehiculeById = async (req, res) => {
+
+export const getVehiculeById = async (req, res) => {
     try {
         const vehicule = await Vehicule.findById(req.params.id);
         if (vehicule) {
@@ -22,7 +23,7 @@ exports.getVehiculeById = async (req, res) => {
     }
 };
 
-exports.createVehicule = async (req, res) => {
+export const createVehicule = async (req, res) => {
     try {
         const vehicule = new Vehicule(req.body);
         await vehicule.save();
@@ -32,7 +33,7 @@ exports.createVehicule = async (req, res) => {
     }
 };
 
-exports.updateVehicule = async (req, res) => {
+export const updateVehicule = async (req, res) => {
     try {
         const vehicule = await Vehicule.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (vehicule) {
@@ -45,7 +46,7 @@ exports.updateVehicule = async (req, res) => {
     }
 };
 
-exports.deleteVehicule = async (req, res) => {
+export const deleteVehicule = async (req, res) => {
     try {
         const vehicule = await Vehicule.findByIdAndDelete(req.params.id);
         if (vehicule) {
@@ -58,7 +59,7 @@ exports.deleteVehicule = async (req, res) => {
     }
 };
 
-exports.searchVehicules = async (req, res) => {
+export const searchVehicules = async (req, res) => {
     try {
         const { term } = req.query;
         const regex = new RegExp(term, 'i');
@@ -73,4 +74,20 @@ exports.searchVehicules = async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
+};
+
+// Add the missing functions that are imported in the route file
+export const filterVehicules = async (req, res) => {
+    // Implement your filtering logic here
+    res.status(200).json({ message: 'Filter endpoint' });
+};
+
+export const getVehiculesByChauffeur = async (req, res) => {
+    // Implement logic to get vehicles by chauffeur
+    res.status(200).json({ message: 'Chauffeur endpoint' });
+};
+
+export const getAvailableVehicules = async (req, res) => {
+    // Implement logic to get available vehicles
+    res.status(200).json({ message: 'Available vehicles endpoint' });
 };

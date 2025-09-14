@@ -11,7 +11,10 @@ class _SignupPageState extends State<SignupPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  String _selectedPost = "chauffeur"; 
   bool _loading = false;
+
+  final List<String> _posts = ["admin", "operator", "chauffeur", "chef parc"];
 
   Future<void> _signup() async {
     final name = _nameController.text.trim();
@@ -34,6 +37,7 @@ class _SignupPageState extends State<SignupPage> {
         body: jsonEncode({
           "name": name,
           "email": email,
+          "post": _selectedPost, 
           "password": password,
         }),
       );
@@ -44,7 +48,8 @@ class _SignupPageState extends State<SignupPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(data["message"])),
         );
-        Navigator.pushReplacementNamed(context, "/login");
+        // FIXED: Use Navigator.pop to go back to the previous page (login)
+       Navigator.pushReplacementNamed(context, '/');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(data["message"] ?? "Signup failed")),
@@ -62,9 +67,12 @@ class _SignupPageState extends State<SignupPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Sign Up")),
+      appBar: AppBar(
+        title: const Text("Sign Up"),
+        backgroundColor: Colors.blueAccent,
+      ),
       body: Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(20.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -92,6 +100,25 @@ class _SignupPageState extends State<SignupPage> {
                   labelText: "Password",
                   border: OutlineInputBorder(),
                 ),
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                value: _selectedPost,
+                decoration: const InputDecoration(
+                  labelText: "Post",
+                  border: OutlineInputBorder(),
+                ),
+                items: _posts.map((String post) {
+                  return DropdownMenuItem<String>(
+                    value: post,
+                    child: Text(post),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedPost = newValue!;
+                  });
+                },
               ),
               const SizedBox(height: 20),
               ElevatedButton(

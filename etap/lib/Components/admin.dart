@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-
-// Placeholder pages for navigation
-import 'explore_page.dart';
-import 'vehicles_page.dart';
-import 'chef_park_page.dart';
-import 'operator_page.dart';
-import 'chauffeur_page.dart';
-import 'saved_page.dart';
+import 'AdminApprovalPage.dart';
+import 'ExplorePage.dart';
+import 'VehiclesPage.dart';
+import 'ChefParkPage.dart'; 
+import 'OperatorPage.dart';
+import 'ChauffeurPage.dart';
+import 'SavedPage.dart';
 
 class AdminHomePage extends StatefulWidget {
   const AdminHomePage({Key? key}) : super(key: key);
@@ -18,15 +17,41 @@ class AdminHomePage extends StatefulWidget {
 class _AdminHomePageState extends State<AdminHomePage> {
   int _selectedIndex = 0;
 
-  // List of pages for navigation
-  final List<Widget> _pages = const [
-    ExplorePage(),
-    VehiclesPage(),
-    ChefParkPage(),
-    OperatorPage(),
-    ChauffeurPage(),
-    SavedPage(),
-  ];
+  // Use empty userData or navigate properly
+  final Map<String, dynamic> _defaultUserData = {
+    'name': 'Admin',
+    'id': 'admin',
+    'post': 'admin'
+  };
+
+  // Initialize pages in initState or build method instead of as const
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      ExplorePage(),
+      VehiclesPage(),
+      ChefParkPage(userData: _defaultUserData), // Use default data
+      OperatorPage(),
+      ChauffeurPage(),
+      SavedPage(),
+    ];
+  }
+
+  void _navigateToApprovalPage(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => AdminApprovalPage()),
+    );
+  }
+  void _navigatoToVehiclesPage(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => VehiclesPage()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +65,13 @@ class _AdminHomePageState extends State<AdminHomePage> {
         selectedIndex: _selectedIndex,
         onDestinationSelected: (int index) {
           setState(() {
-            _selectedIndex = index;
+            if (index == 5) { // If Saved icon is clicked (index 5)
+              _navigateToApprovalPage(context);
+            } else if (index == 1) { // If Vehicles icon is clicked (index 1)
+              _navigatoToVehiclesPage(context);
+            } else {
+              _selectedIndex = index;
+            }
           });
         },
         destinations: const [
@@ -67,7 +98,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
           NavigationDestination(
             selectedIcon: Icon(Icons.bookmark),
             icon: Icon(Icons.bookmark_border),
-            label: 'Saved',
+            label: 'Approvals', 
           ),
         ],
       ),

@@ -1,18 +1,19 @@
-const { Op } = require('sequelize');
-const { Reparation, Vehicule, Panne } = require('../config/models');
+import Reparation from '../models/reparation.js';
+import Vehicule from '../models/vehicule.js';
+import Panne from '../models/panne.js';
 
-exports.getAllReparations = async (req, res) => {
+export const getAllReparations = async (req, res) => {
     try {
-        const reparations = await Reparation.findAll();
+        const reparations = await Reparation.find();
         res.status(200).json(reparations);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
 
-exports.getReparationById = async (req, res) => {
+export const getReparationById = async (req, res) => {
     try {
-        const reparation = await Reparation.findByPk(req.params.id);
+        const reparation = await Reparation.findById(req.params.id);
         if (reparation) {
             res.status(200).json(reparation);
         } else {
@@ -23,44 +24,86 @@ exports.getReparationById = async (req, res) => {
     }
 };
 
-exports.createReparation = async (req, res) => {
-    try {
-        const newReparation = await Reparation.create(req.body);
-        if (newReparation.etat == 'TERMINE') {
-            const panne = await Panne.findByPk(newReparation.panne);
-            const vehicule = await Vehicule.findByPk(panne.vehicule);
-            await Vehicule.update({ etat: 'DISPONIBLE' }, { where: { id: vehicule.id } });
-        }
-        else if (newReparation.etat == 'EN_COURS') {
-            const panne = await Panne.findByPk(newReparation.panne);
-            const vehicule = await Vehicule.findByPk(panne.vehicule);
-            await Vehicule.update({ etat: 'EN_REPARATION' }, { where: { id: vehicule.id } });
-        }
-        res.status(201).json(newReparation);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+export const createReparation = async (req, res) => {
+  try {
+    // Handle field mapping from Flutter app
+    const reparationData = {
+      ...req.body,
+      etat: req.body.statut || req.body.etat, // Map statut to etat
+      priorite: req.body.priorite || 'MOYENNE'
+    };
+    
+    const newReparation = new Reparation(reparationData);
+    const savedReparation = await newReparation.save();
+    
+    // Update vehicle status based on repair state
+    if (savedReparation.etat === 'TERMINEE') {
+      await Vehicule.findByIdAndUpdate(
+        savedReparation.vehicule, 
+        { etat: 'DISPONIBLE' }
+      );
+    } else if (savedReparation.etat === 'EN_COURS') {
+      await Vehicule.findByIdAndUpdate(
+        savedReparation.vehicule, 
+        { etat: 'EN_REPARATION' }
+      );
     }
+    
+    const populatedReparation = await Reparation.findById(savedReparation._id)
+      .populate('vehicule');
+      
+    res.status(201).json(populatedReparation);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
-exports.updateReparation = async (req, res) => {
-    try {
-        const updatedRows = await Reparation.update(req.body, {
-            where: { id: req.params.id }
-        });
-        if (updatedRows > 0) {
-            res.status(200).json({ message: 'Reparation updated successfully' });
-        } else {
-            res.status(404).json({ message: 'Reparation not found' });
+export const updateReparation = async (req, res) => {
+  try {
+    // Handle field mapping for updates
+    const updateData = {
+      ...req.body,
+      etat: req.body.statut || req.body.etat,
+      priorite: req.body.priorite || req.body.priorite
+    };
+    
+    const updatedReparation = await Reparation.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    ).populate('vehicule');
+    
+    if (updatedReparation) {
+      // Update vehicle state if reparation status changed
+      if (req.body.etat || req.body.statut) {
+        const newEtat = req.body.etat || req.body.statut;
+        let newVehicleState = 'DISPONIBLE';
+        
+        if (newEtat === 'EN_COURS') {
+          newVehicleState = 'EN_REPARATION';
+        } else if (newEtat === 'EN_ATTENTE') {
+          newVehicleState = 'EN_PANNE';
         }
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+        
+        await Vehicule.findByIdAndUpdate(
+          updatedReparation.vehicule, 
+          { etat: newVehicleState }
+        );
+      }
+      
+      res.status(200).json(updatedReparation);
+    } else {
+      res.status(404).json({ message: 'Reparation not found' });
     }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
-exports.deleteReparation = async (req, res) => {
+export const deleteReparation = async (req, res) => {
     try {
-        const deletedRows = await Reparation.destroy({ where: { id: req.params.id } });
-        if (deletedRows > 0) {
+        const deletedReparation = await Reparation.findByIdAndDelete(req.params.id);
+        if (deletedReparation) {
             res.status(200).json({ message: 'Reparation deleted successfully' });
         } else {
             res.status(404).json({ message: 'Reparation not found' });
@@ -69,25 +112,27 @@ exports.deleteReparation = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
-exports.getReparationsByFilter = async (req, res) => {
+
+export const getReparationsByFilter = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
-        const filter = JSON.parse(req.query.filter) || {};
-        const offset = (page - 1) * limit;
-        const whereClause = {};
+        const filter = req.query.filter ? JSON.parse(req.query.filter) : {};
+        const skip = (page - 1) * limit;
 
+        let query = {};
         for (const key in filter) {
             if (filter[key]) {
-                whereClause[key] = filter[key];
+                query[key] = filter[key];
             }
         }
-        const totalRecords = await Reparation.count({ where: whereClause });
-        const reparationRecords = await Reparation.findAll({
-            where: whereClause,
-            limit: limit,
-            offset: offset,
-        });
+
+        const totalRecords = await Reparation.countDocuments(query);
+        const reparationRecords = await Reparation.find(query)
+            .populate('panne')
+            .skip(skip)
+            .limit(limit);
+
         const totalPages = Math.ceil(totalRecords / limit);
         res.status(200).json({
             data: reparationRecords,
@@ -101,21 +146,53 @@ exports.getReparationsByFilter = async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
-}
-exports.searchReparations = async (req, res) => {
+};
+
+export const getReparationsByVehicule = async (req, res) => {
+    try {
+        const { immatriculation } = req.params;
+        const vehicule = await Vehicule.findOne({ immatriculation });
+        
+        if (!vehicule) {
+            return res.status(404).json({ message: 'Vehicule not found' });
+        }
+
+        const pannes = await Panne.find({ vehicule: vehicule._id });
+        const panneIds = pannes.map(panne => panne._id);
+        
+        const reparations = await Reparation.find({ panne: { $in: panneIds } })
+            .populate('panne')
+            .populate('garage');
+
+        res.status(200).json(reparations);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const getReparationsByPanne = async (req, res) => {
+    try {
+        const { panneId } = req.params;
+        const reparations = await Reparation.find({ panne: panneId })
+            .populate('panne')
+            .populate('garage');
+
+        res.status(200).json(reparations);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const searchReparations = async (req, res) => {
     try {
         const { term } = req.query;
-        const whereClause = {
-            [Op.or]: [
-                { id: { [Op.like]: `%${term}%` } },
+        const regex = new RegExp(term, 'i');
+        
+        const reparations = await Reparation.find({
+            $or: [
+                { etat: { $regex: regex } }
             ]
-        };
-        if (req.user.societe) {
-            whereClause.societe = req.user.societe; // Filter by societe
-        }
-        const reparations = await Reparation.findAll({
-            where: whereClause
-        });
+        }).populate('panne').populate('garage');
 
         res.status(200).json(reparations);
     } catch (error) {

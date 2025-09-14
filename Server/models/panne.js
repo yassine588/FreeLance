@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const panneSchema = new mongoose.Schema({
   date: {
@@ -25,4 +25,4 @@ const panneSchema = new mongoose.Schema({
   timestamps: false
 });
 
-module.exports = mongoose.model('Panne', panneSchema);
+export default mongoose.model('Panne', panneSchema);

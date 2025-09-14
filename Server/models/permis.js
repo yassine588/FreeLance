@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const permisSchema = new mongoose.Schema({
   numero: {
@@ -29,4 +29,4 @@ const permisSchema = new mongoose.Schema({
   timestamps: false
 });
 
-module.exports = mongoose.model('Permis', permisSchema);
+export default mongoose.model('Permis', permisSchema);
